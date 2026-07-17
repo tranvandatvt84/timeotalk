@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:timeotalk/features/contacts/viewmodels/contacts_view_model.dart';
 import 'package:timeotalk/features/contacts/views/contacts_view.dart';
+import 'package:timeotalk/features/inbox/viewmodels/inbox_view_model.dart';
+import 'package:timeotalk/features/inbox/views/inbox_view.dart';
 import 'package:timeotalk/features/profile/viewmodels/profile_view_model.dart';
 import 'package:timeotalk/features/profile/views/profile_view.dart';
 
@@ -13,6 +15,7 @@ class MainShell extends StatefulWidget {
   const MainShell({
     this.initialIndex = 0,
     this.currentUserId,
+    this.inboxViewModel,
     this.contactsViewModel,
     this.profileViewModel,
     super.key,
@@ -20,6 +23,7 @@ class MainShell extends StatefulWidget {
 
   final int initialIndex;
   final String? currentUserId;
+  final InboxViewModel? inboxViewModel;
   final ContactsViewModel? contactsViewModel;
   final ProfileViewModel? profileViewModel;
 
@@ -120,6 +124,10 @@ class _MainShellState extends State<MainShell> {
     }
 
     final tab = _tabs[index];
+    if (tab.label == 'Inbox') {
+      return InboxView(key: tab.key, viewModel: widget.inboxViewModel);
+    }
+
     if (tab.label == 'Contacts') {
       return ContactsView(
         key: tab.key,

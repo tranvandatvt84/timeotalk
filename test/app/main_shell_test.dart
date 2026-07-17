@@ -8,6 +8,10 @@ import 'package:timeotalk/features/contacts/models/profile_search_result_model.d
 import 'package:timeotalk/features/contacts/repositories/contacts_repository.dart';
 import 'package:timeotalk/features/contacts/viewmodels/contacts_view_model.dart';
 import 'package:timeotalk/features/contacts/views/contacts_view.dart';
+import 'package:timeotalk/features/inbox/models/conversation_model.dart';
+import 'package:timeotalk/features/inbox/repositories/inbox_repository.dart';
+import 'package:timeotalk/features/inbox/viewmodels/inbox_view_model.dart';
+import 'package:timeotalk/features/inbox/views/inbox_view.dart';
 import 'package:timeotalk/features/profile/models/profile_model.dart';
 import 'package:timeotalk/features/profile/repositories/profile_repository.dart';
 import 'package:timeotalk/features/profile/viewmodels/profile_view_model.dart';
@@ -17,11 +21,29 @@ void main() {
   testWidgets('main shell starts on inbox with liquid glass navigation', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: MainShell()));
+    final inboxViewModel = InboxViewModel(
+      repository: _FakeInboxRepository(
+        conversations: [
+          const ConversationModel(
+            id: 'conversation_1',
+            type: 'direct',
+            title: 'Alex Rivera',
+          ),
+        ],
+      ),
+    );
+    addTearDown(inboxViewModel.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(home: MainShell(inboxViewModel: inboxViewModel)),
+    );
+    await tester.pump();
 
     expect(find.byKey(const Key('tab-screen-inbox')), findsOneWidget);
+    expect(find.byType(InboxView), findsOneWidget);
     expect(find.byType(LiquidGlassNavBar), findsOneWidget);
     expect(find.text('Inbox'), findsOneWidget);
+    expect(find.text('Alex Rivera'), findsOneWidget);
     expect(find.text('Contacts'), findsNothing);
     expect(find.text('Profile'), findsNothing);
   });
@@ -29,6 +51,8 @@ void main() {
   testWidgets('main shell switches between real contacts and profile tabs', (
     tester,
   ) async {
+    final inboxViewModel = InboxViewModel(repository: _FakeInboxRepository());
+    addTearDown(inboxViewModel.dispose);
     final contactsRepository = _FakeContactsRepository(
       contacts: [
         const ContactModel(
@@ -46,6 +70,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: MainShell(
+          inboxViewModel: inboxViewModel,
           contactsViewModel: contactsViewModel,
           profileViewModel: profileViewModel,
         ),
@@ -74,6 +99,8 @@ void main() {
   });
 
   testWidgets('main shell keeps visited tabs alive', (tester) async {
+    final inboxViewModel = InboxViewModel(repository: _FakeInboxRepository());
+    addTearDown(inboxViewModel.dispose);
     final repository = _FakeProfileRepository(
       profile: const ProfileModel(
         id: 'user_1',
@@ -84,7 +111,12 @@ void main() {
     final profileViewModel = ProfileViewModel(repository: repository);
 
     await tester.pumpWidget(
-      MaterialApp(home: MainShell(profileViewModel: profileViewModel)),
+      MaterialApp(
+        home: MainShell(
+          inboxViewModel: inboxViewModel,
+          profileViewModel: profileViewModel,
+        ),
+      ),
     );
 
     await tester.tap(find.byIcon(Icons.person_outline));
@@ -114,8 +146,12 @@ void main() {
   testWidgets('main shell uses native Swift navbar on iOS', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    final inboxViewModel = InboxViewModel(repository: _FakeInboxRepository());
+    addTearDown(inboxViewModel.dispose);
 
-    await tester.pumpWidget(const MaterialApp(home: MainShell()));
+    await tester.pumpWidget(
+      MaterialApp(home: MainShell(inboxViewModel: inboxViewModel)),
+    );
 
     expect(find.byType(NativeIosLiquidGlassNavBar), findsOneWidget);
     expect(find.byType(LiquidGlassNavBar), findsNothing);
@@ -200,4 +236,23 @@ class _FakeContactsRepository implements ContactsRepository {
       status: action.status,
     );
   }
+}
+
+class _FakeInboxRepository implements InboxRepository {
+  _FakeInboxRepository({this.conversations = const []});
+
+  final List<ConversationModel> conversations;
+
+  @override
+  Future<List<ConversationModel>> fetchRemoteConversations() async {
+    return conversations;
+  }
+
+  @override
+  Stream<List<ConversationModel>> watchLocalConversations() {
+    return Stream.value(conversations);
+  }
+
+  @override
+  Future<void> syncConversations() async {}
 }

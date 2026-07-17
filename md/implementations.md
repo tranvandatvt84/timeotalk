@@ -737,6 +737,9 @@ git commit -m "feat: add ably token auth"
 - Create: `lib/features/inbox/viewmodels/inbox_view_model.dart`
 - Create: `lib/features/inbox/views/inbox_view.dart`
 - Create: `test/features/inbox/inbox_view_model_test.dart`
+- Create: `test/features/inbox/inbox_repository_test.dart`
+- Create: `test/features/inbox/inbox_view_test.dart`
+- Update: `lib/app/main_shell.dart`
 
 **Interfaces:**
 
@@ -744,12 +747,12 @@ git commit -m "feat: add ably token auth"
 - Produces: `InboxRepository.watchLocalConversations()`
 - Produces: `InboxRepository.syncConversations()`
 
-- [ ] Write ViewModel test for loading local conversations first, then refreshing from Supabase.
-- [ ] Implement local conversation reads from SQLite.
-- [ ] Implement Supabase conversation fetch.
-- [ ] Implement sync cursor updates.
-- [ ] Build inbox list UI.
-- [ ] Run tests.
+- [x] Write ViewModel test for loading local conversations first, then refreshing from Supabase.
+- [x] Implement local conversation reads from SQLite.
+- [x] Implement Supabase conversation fetch.
+- [x] Implement sync cursor updates.
+- [x] Build inbox list UI.
+- [x] Run tests.
 
 ```bash
 flutter test test/features/inbox/inbox_view_model_test.dart
@@ -757,10 +760,10 @@ flutter test test/features/inbox/inbox_view_model_test.dart
 
 Expected: tests pass.
 
-- [ ] Commit.
+- [x] Commit.
 
 ```bash
-git add lib/features/inbox test/features/inbox
+git add lib/app/main_shell.dart lib/features/inbox test/app/main_shell_test.dart test/features/inbox md/implementations.md
 git commit -m "feat: add inbox sync"
 ```
 
