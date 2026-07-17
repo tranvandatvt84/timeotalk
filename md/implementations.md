@@ -778,6 +778,7 @@ git commit -m "feat: add inbox sync"
 - Create: `lib/features/chat/viewmodels/chat_view_model.dart`
 - Create: `test/features/chat/chat_view_model_test.dart`
 - Create: `test/features/chat/outgoing_queue_test.dart`
+- Create: `test/features/chat/chat_realtime_repository_test.dart`
 
 **Interfaces:**
 
@@ -786,13 +787,13 @@ git commit -m "feat: add inbox sync"
 - Produces: `ChatRealtimeRepository.publishMessageCreated(message)`
 - Produces: `OutgoingQueue.flush()`
 
-- [ ] Write failing test: sending text creates local message with `persistence_status = pending`.
-- [ ] Write failing test: message is added to `outgoing_queue` when Ably is disconnected.
-- [ ] Implement local insert.
-- [ ] Implement `client_message_id` generation.
-- [ ] Implement Ably publish to `chat:{conversation_id}`.
-- [ ] Implement queue flush after token refresh or reconnect.
-- [ ] Run tests.
+- [x] Write failing test: sending text creates local message with `persistence_status = pending`.
+- [x] Write failing test: message is added to `outgoing_queue` when Ably is disconnected.
+- [x] Implement local insert.
+- [x] Implement `client_message_id` generation.
+- [x] Implement Ably publish to `chat:{conversation_id}`.
+- [x] Implement queue flush after token refresh or reconnect.
+- [x] Run tests.
 
 ```bash
 flutter test test/features/chat/chat_view_model_test.dart
@@ -801,7 +802,7 @@ flutter test test/features/chat/outgoing_queue_test.dart
 
 Expected: tests pass.
 
-- [ ] Commit.
+- [x] Commit.
 
 ```bash
 git add lib/features/chat test/features/chat
