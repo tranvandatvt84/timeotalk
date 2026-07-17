@@ -15,6 +15,6 @@ class AuthGate extends StatelessWidget {
       return const LoginView();
     }
 
-    return const MainShell();
+    return MainShell(currentUserId: state.user!.id);
   }
 }

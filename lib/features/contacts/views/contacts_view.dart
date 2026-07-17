@@ -8,9 +8,13 @@ import 'package:timeotalk/features/contacts/viewmodels/contacts_view_model.dart'
 import 'package:timeotalk/features/contacts/views/invitations_view.dart';
 
 class ContactsView extends StatefulWidget {
-  const ContactsView({super.key, ContactsViewModel? viewModel})
-    : _viewModel = viewModel;
+  const ContactsView({
+    super.key,
+    this.currentUserId,
+    ContactsViewModel? viewModel,
+  }) : _viewModel = viewModel;
 
+  final String? currentUserId;
   final ContactsViewModel? _viewModel;
 
   @override
@@ -135,7 +139,12 @@ class _ContactsViewState extends State<ContactsView> {
 
   void _openInvitations() {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => InvitationsView(viewModel: _viewModel)),
+      MaterialPageRoute(
+        builder: (_) => InvitationsView(
+          currentUserId: widget.currentUserId,
+          viewModel: _viewModel,
+        ),
+      ),
     );
   }
 

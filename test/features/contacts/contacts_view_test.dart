@@ -183,7 +183,9 @@ void main() {
     );
     final viewModel = ContactsViewModel(repository: repository);
 
-    await tester.pumpWidget(_harness(ContactsView(viewModel: viewModel)));
+    await tester.pumpWidget(
+      _harness(ContactsView(viewModel: viewModel, currentUserId: 'receiver_1')),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('contacts-invitations-button')));
@@ -198,6 +200,35 @@ void main() {
     expect(repository.lastInvitationId, 'inv_1');
     expect(repository.lastAction, InvitationResponseAction.accept);
     expect(find.text('accepted'), findsOneWidget);
+  });
+
+  testWidgets('invitations view hides response actions for sent invitations', (
+    tester,
+  ) async {
+    final repository = _FakeContactsRepository(
+      invitations: [
+        _invitation(
+          id: 'sent_inv_1',
+          senderId: 'user_1',
+          receiverId: 'friend_1',
+        ),
+      ],
+    );
+    final viewModel = ContactsViewModel(repository: repository);
+
+    await tester.pumpWidget(
+      _harness(ContactsView(viewModel: viewModel, currentUserId: 'user_1')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('contacts-invitations-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(InvitationsView), findsOneWidget);
+    expect(find.text('user_1'), findsOneWidget);
+    expect(find.text('pending'), findsOneWidget);
+    expect(find.byTooltip('Accept'), findsNothing);
+    expect(find.byTooltip('Decline'), findsNothing);
   });
 
   testWidgets('contacts view shows repository error state', (tester) async {

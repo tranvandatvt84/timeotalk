@@ -4,9 +4,13 @@ import 'package:timeotalk/features/contacts/repositories/contacts_repository.dar
 import 'package:timeotalk/features/contacts/viewmodels/contacts_view_model.dart';
 
 class InvitationsView extends StatefulWidget {
-  const InvitationsView({super.key, ContactsViewModel? viewModel})
-    : _viewModel = viewModel;
+  const InvitationsView({
+    super.key,
+    this.currentUserId,
+    ContactsViewModel? viewModel,
+  }) : _viewModel = viewModel;
 
+  final String? currentUserId;
   final ContactsViewModel? _viewModel;
 
   @override
@@ -68,6 +72,7 @@ class _InvitationsViewState extends State<InvitationsView> {
                   for (final invitation in state.invitations)
                     _InvitationTile(
                       invitation: invitation,
+                      currentUserId: widget.currentUserId,
                       isLoading: state.isLoading,
                       onAccept: () =>
                           _viewModel.acceptInvitation(invitation.id),
@@ -92,12 +97,14 @@ class _InvitationsViewState extends State<InvitationsView> {
 class _InvitationTile extends StatelessWidget {
   const _InvitationTile({
     required this.invitation,
+    required this.currentUserId,
     required this.isLoading,
     required this.onAccept,
     required this.onDecline,
   });
 
   final InvitationModel invitation;
+  final String? currentUserId;
   final bool isLoading;
   final VoidCallback onAccept;
   final VoidCallback onDecline;
@@ -105,12 +112,13 @@ class _InvitationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPending = invitation.status == 'pending';
+    final canRespond = isPending && invitation.receiverId == currentUserId;
 
     return ListTile(
       leading: const CircleAvatar(child: Icon(Icons.person_add_alt)),
       title: Text(invitation.senderId),
       subtitle: Text(invitation.message ?? invitation.status),
-      trailing: isPending
+      trailing: canRespond
           ? Wrap(
               spacing: 4,
               children: [

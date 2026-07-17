@@ -12,12 +12,14 @@ import 'package:timeotalk/features/profile/views/profile_view.dart';
 class MainShell extends StatefulWidget {
   const MainShell({
     this.initialIndex = 0,
+    this.currentUserId,
     this.contactsViewModel,
     this.profileViewModel,
     super.key,
   });
 
   final int initialIndex;
+  final String? currentUserId;
   final ContactsViewModel? contactsViewModel;
   final ProfileViewModel? profileViewModel;
 
@@ -119,7 +121,11 @@ class _MainShellState extends State<MainShell> {
 
     final tab = _tabs[index];
     if (tab.label == 'Contacts') {
-      return ContactsView(key: tab.key, viewModel: widget.contactsViewModel);
+      return ContactsView(
+        key: tab.key,
+        currentUserId: widget.currentUserId,
+        viewModel: widget.contactsViewModel,
+      );
     }
 
     if (tab.label == 'Profile') {
