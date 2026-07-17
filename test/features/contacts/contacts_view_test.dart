@@ -55,7 +55,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Alex Rivera'), findsOneWidget);
-    expect(find.text('friend_1'), findsOneWidget);
+    expect(find.text('friend_1'), findsNothing);
     expect(find.text('AR'), findsOneWidget);
   });
 

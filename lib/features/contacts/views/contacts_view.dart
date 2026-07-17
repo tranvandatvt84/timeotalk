@@ -353,11 +353,12 @@ class _ContactTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final title =
         contact.nickname ?? contact.displayName ?? contact.contactUserId;
+    final subtitle = contact.nickname == null ? null : contact.displayName;
 
     return ListTile(
       leading: CircleAvatar(child: Text(_initials(title))),
       title: Text(title),
-      subtitle: Text(contact.contactUserId),
+      subtitle: subtitle == null ? null : Text(subtitle),
       trailing: IconButton(
         tooltip: 'Open chat',
         onPressed: () {},

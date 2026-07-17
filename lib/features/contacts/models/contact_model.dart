@@ -41,6 +41,21 @@ class ContactModel {
     );
   }
 
+  factory ContactModel.fromSupabaseRow(Map<String, Object?> row) {
+    final json = Map<String, Object?>.from(row);
+    final profile = row['contact_profile'];
+
+    if (profile is Map) {
+      final profileJson = Map<String, Object?>.from(
+        profile.cast<String, Object?>(),
+      );
+      json['display_name'] ??= profileJson['display_name'];
+      json['avatar_url'] ??= profileJson['avatar_url'];
+    }
+
+    return ContactModel.fromJson(json);
+  }
+
   Map<String, Object?> toJson() {
     return {
       if (id != null) 'id': id,

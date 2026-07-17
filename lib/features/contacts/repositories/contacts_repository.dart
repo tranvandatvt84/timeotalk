@@ -45,7 +45,9 @@ class SupabaseContactsRepository implements ContactsRepository {
   Future<List<ContactModel>> fetchContacts() async {
     final rows = await _client
         .from('contacts')
-        .select()
+        .select(
+          '*,contact_profile:profiles!contacts_contact_user_id_fkey(display_name,avatar_url)',
+        )
         .order('updated_at', ascending: false);
     final contacts = rows.map(_contactFromRow).toList(growable: false);
 
@@ -126,7 +128,7 @@ class SupabaseContactsRepository implements ContactsRepository {
   }
 
   ContactModel _contactFromRow(Map<String, dynamic> row) {
-    return ContactModel.fromJson(Map<String, Object?>.from(row));
+    return ContactModel.fromSupabaseRow(Map<String, Object?>.from(row));
   }
 
   InvitationModel _invitationFromRow(Map<String, dynamic> row) {
