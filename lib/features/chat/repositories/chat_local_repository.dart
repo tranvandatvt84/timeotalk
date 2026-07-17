@@ -31,6 +31,65 @@ class ChatLocalRepository {
     return _updateLocalStatus(clientMessageId, 'queued_realtime');
   }
 
+  Future<ChatMessageModel> mergePersistedMessage(
+    ChatMessageModel message,
+  ) async {
+    final existing = await fetchMessageByClientId(message.clientMessageId);
+    final merged = (existing ?? message).copyWith(
+      serverMessageId: message.serverMessageId,
+      senderId: message.senderId,
+      senderDeviceId: message.senderDeviceId,
+      type: message.type,
+      body: message.body.isEmpty ? existing?.body : message.body,
+      attachments: message.attachments.isEmpty
+          ? existing?.attachments
+          : message.attachments,
+      deliveryStatus: message.deliveryStatus,
+      persistenceStatus: 'persisted',
+      serverCreatedAt: message.serverCreatedAt,
+      updatedAt: message.updatedAt ?? DateTime.now().toUtc(),
+    );
+
+    await insertOutgoingMessage(merged);
+    return merged;
+  }
+
+  Future<ChatMessageModel> mergeRejectedMessage(
+    ChatMessageModel message, {
+    String? errorMessage,
+  }) async {
+    final existing = await fetchMessageByClientId(message.clientMessageId);
+    final merged = (existing ?? message).copyWith(
+      localStatus: 'rejected',
+      persistenceStatus: 'rejected',
+      updatedAt: message.updatedAt ?? DateTime.now().toUtc(),
+    );
+
+    await insertOutgoingMessage(merged);
+    return merged;
+  }
+
+  Future<ChatMessageModel?> fetchMessageByClientId(
+    String clientMessageId,
+  ) async {
+    final rows = await _database.transaction((transaction) {
+      return transaction.query(
+        'local_messages',
+        where: 'client_message_id = ?',
+        whereArgs: [clientMessageId],
+        limit: 1,
+      );
+    });
+
+    if (rows.isEmpty) {
+      return null;
+    }
+
+    return ChatMessageModel.fromLocalRow(
+      Map<String, Object?>.from(rows.single),
+    );
+  }
+
   Future<void> enqueueOutgoingMessage(
     ChatMessageModel message, {
     String? lastError,

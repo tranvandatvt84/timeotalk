@@ -117,5 +117,29 @@ void main() {
       expect(source, contains(r'user:${userId}'));
       expect(source, contains('HMAC'));
     });
+
+    test('defines message persistence edge function', () {
+      final persistFunction = File(
+        'supabase/functions/persist-message/index.ts',
+      );
+
+      expect(persistFunction.existsSync(), isTrue);
+
+      final source = persistFunction.readAsStringSync();
+
+      expect(source, contains('validateMessageCreated'));
+      expect(source, contains('conversation_members'));
+      expect(source, contains('.is("left_at", null)'));
+      expect(source, contains('.from("messages")'));
+      expect(
+        source,
+        contains('onConflict: "conversation_id,client_message_id"'),
+      );
+      expect(source, contains('.from("attachments")'));
+      expect(source, contains('message.persisted'));
+      expect(source, contains('message.rejected'));
+      expect(source, contains('ABLY_API_KEY'));
+      expect(source, contains('publishAbly'));
+    });
   });
 }

@@ -1,9 +1,11 @@
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:timeotalk/core/realtime/realtime_event.dart';
 import 'package:timeotalk/features/chat/models/chat_message_model.dart';
 import 'package:timeotalk/features/chat/repositories/chat_local_repository.dart';
 import 'package:timeotalk/features/chat/repositories/chat_realtime_repository.dart';
+import 'package:timeotalk/features/chat/repositories/chat_remote_repository.dart';
 
 typedef ClientMessageIdGenerator = String Function();
 typedef ChatClock = DateTime Function();
@@ -38,6 +40,7 @@ class ChatViewModel extends ChangeNotifier {
     required String currentUserId,
     required ChatLocalRepository localRepository,
     required ChatRealtimeRepository realtimeRepository,
+    ChatRemoteRepository? remoteRepository,
     String? senderDeviceId,
     ClientMessageIdGenerator? clientMessageIdGenerator,
     ChatClock? clock,
@@ -45,6 +48,7 @@ class ChatViewModel extends ChangeNotifier {
        _senderDeviceId = senderDeviceId,
        _localRepository = localRepository,
        _realtimeRepository = realtimeRepository,
+       _remoteRepository = remoteRepository,
        _clientMessageIdGenerator =
            clientMessageIdGenerator ?? _generateClientMessageId,
        _clock = clock ?? (() => DateTime.now().toUtc());
@@ -53,6 +57,7 @@ class ChatViewModel extends ChangeNotifier {
   final String? _senderDeviceId;
   final ChatLocalRepository _localRepository;
   final ChatRealtimeRepository _realtimeRepository;
+  final ChatRemoteRepository? _remoteRepository;
   final ClientMessageIdGenerator _clientMessageIdGenerator;
   final ChatClock _clock;
 
@@ -90,6 +95,7 @@ class ChatViewModel extends ChangeNotifier {
 
     try {
       await _realtimeRepository.publishMessageCreated(message);
+      await _remoteRepository?.persistMessage(message);
       await _localRepository.markMessageSentRealtime(message.clientMessageId);
       final sentMessage = message.copyWith(
         localStatus: 'sent_realtime',
@@ -114,22 +120,51 @@ class ChatViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> handleRealtimeEvent(RealtimeEvent event) async {
+    final message = event.message;
+    if (message == null) {
+      return;
+    }
+
+    switch (event.type) {
+      case RealtimeEventType.messagePersisted:
+        final merged = await _localRepository.mergePersistedMessage(message);
+        _replaceMessage(merged);
+      case RealtimeEventType.messageRejected:
+        final merged = await _localRepository.mergeRejectedMessage(
+          message,
+          errorMessage: event.errorMessage,
+        );
+        _replaceMessage(merged);
+        _setState(_state.copyWith(errorMessage: event.errorMessage));
+      case RealtimeEventType.messageCreated:
+      case RealtimeEventType.receiptDelivered:
+      case RealtimeEventType.receiptRead:
+        return;
+    }
+  }
+
   void _prependMessage(ChatMessageModel message) {
     _setState(_state.copyWith(messages: [message, ..._state.messages]));
   }
 
   void _replaceMessage(ChatMessageModel message) {
-    _setState(
-      _state.copyWith(
-        messages: [
-          for (final existing in _state.messages)
-            if (existing.clientMessageId == message.clientMessageId)
-              message
-            else
-              existing,
-        ],
-      ),
-    );
+    final messages = <ChatMessageModel>[];
+    var replaced = false;
+    for (final existing in _state.messages) {
+      if (existing.clientMessageId == message.clientMessageId) {
+        messages.add(message);
+        replaced = true;
+      } else {
+        messages.add(existing);
+      }
+    }
+
+    if (!replaced) {
+      messages.insert(0, message);
+    }
+
+    _setState(_state.copyWith(messages: messages));
   }
 
   void _setState(ChatViewState state) {

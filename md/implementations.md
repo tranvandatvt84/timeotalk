@@ -816,8 +816,12 @@ git commit -m "feat: send local-first chat messages"
 **Files:**
 
 - Create: `supabase/functions/persist-message/index.ts`
-- Modify: `lib/features/chat/repositories/chat_remote_repository.dart`
+- Create: `lib/features/chat/repositories/chat_remote_repository.dart`
 - Modify: `lib/features/chat/viewmodels/chat_view_model.dart`
+- Modify: `lib/features/chat/repositories/chat_local_repository.dart`
+- Modify: `test/features/chat/chat_view_model_test.dart`
+- Create: `test/features/chat/chat_remote_repository_test.dart`
+- Modify: `test/supabase/supabase_migrations_test.dart`
 
 **Interfaces:**
 
@@ -826,14 +830,14 @@ git commit -m "feat: send local-first chat messages"
 - Produces Ably event: `message.persisted`
 - Produces Ably event: `message.rejected`
 
-- [ ] Implement event schema validation for `message.created`.
-- [ ] Verify sender is a current `conversation_members` row.
-- [ ] Insert into `messages` using unique `(conversation_id, client_message_id)`.
-- [ ] Insert `attachments` rows when message includes media.
-- [ ] Publish `message.persisted` on success.
-- [ ] Publish `message.rejected` on authorization failure.
-- [ ] Update Flutter to merge `message.persisted` into SQLite by `client_message_id`.
-- [ ] Run local function.
+- [x] Implement event schema validation for `message.created`.
+- [x] Verify sender is a current `conversation_members` row.
+- [x] Insert into `messages` using unique `(conversation_id, client_message_id)`.
+- [x] Insert `attachments` rows when message includes media.
+- [x] Publish `message.persisted` on success.
+- [x] Publish `message.rejected` on authorization failure.
+- [x] Update Flutter to merge `message.persisted` into SQLite by `client_message_id`.
+- [x] Run local function.
 
 ```bash
 supabase functions serve persist-message
@@ -841,10 +845,10 @@ supabase functions serve persist-message
 
 Expected: function starts locally and logs no startup errors.
 
-- [ ] Commit.
+- [x] Commit.
 
 ```bash
-git add supabase/functions/persist-message lib/features/chat
+git add supabase/functions/persist-message lib/features/chat test/features/chat test/supabase/supabase_migrations_test.dart md/implementations.md
 git commit -m "feat: persist realtime messages"
 ```
 
