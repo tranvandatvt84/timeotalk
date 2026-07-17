@@ -94,6 +94,7 @@ void main() {
       expect(source, contains('SUPABASE_SERVICE_ROLE_KEY'));
       expect(source, contains('display_name,handle,avatar_url'));
       expect(source, contains('.neq("id", user.id)'));
+      expect(source, isNot(contains('.not("handle", "is", null)')));
       expect(source, contains('query.length < 2'));
       expect(source, contains('profiles'));
     });

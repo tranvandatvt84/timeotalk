@@ -308,7 +308,9 @@ class _ProfileSearchResultTile extends StatelessWidget {
             : null,
       ),
       title: Text(profile.displayName),
-      subtitle: Text('@${profile.handle}'),
+      subtitle: Text(
+        profile.handle == null ? 'No handle yet' : '@${profile.handle}',
+      ),
       trailing: IconButton.filledTonal(
         key: Key('contacts-add-profile-${profile.id}'),
         tooltip: 'Add',

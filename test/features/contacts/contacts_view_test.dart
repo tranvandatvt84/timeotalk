@@ -101,6 +101,39 @@ void main() {
     expect(find.text('Pending invitations: 1'), findsOneWidget);
   });
 
+  testWidgets('contacts view shows searchable users without handles', (
+    tester,
+  ) async {
+    final repository = _FakeContactsRepository(
+      searchResults: [
+        ProfileSearchResultModel.fromJson(const {
+          'id': 'friend_3',
+          'display_name': 'No Handle User',
+          'handle': null,
+          'avatar_url': null,
+        }),
+      ],
+    );
+    final viewModel = ContactsViewModel(repository: repository);
+
+    await tester.pumpWidget(_harness(ContactsView(viewModel: viewModel)));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('contacts-search-users')),
+      'no handle',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('No Handle User'), findsOneWidget);
+    expect(find.text('No handle yet'), findsOneWidget);
+    expect(
+      find.byKey(const Key('contacts-add-profile-friend_3')),
+      findsOneWidget,
+    );
+    expect(find.text('No users found'), findsNothing);
+  });
+
   testWidgets('contacts view shows no results for an unmatched search', (
     tester,
   ) async {

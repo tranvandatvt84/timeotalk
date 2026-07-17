@@ -34,7 +34,6 @@ Deno.serve(async (request) => {
     .from("profiles")
     .select("id,display_name,handle,avatar_url")
     .neq("id", user.id)
-    .not("handle", "is", null)
     .or(`handle.ilike.${pattern},display_name.ilike.${pattern}`)
     .order("display_name", { ascending: true })
     .limit(20);
