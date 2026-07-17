@@ -705,13 +705,13 @@ git commit -m "feat: add contacts screen"
 - Produces: `AblyClientProvider.channel(name)`
 - Produces: `RealtimeEvent.fromJson(Map<String, dynamic>)`
 
-- [ ] Write `RealtimeEvent` tests for `message.created`, `message.persisted`, `message.rejected`, `receipt.delivered`, and `receipt.read`.
-- [ ] Implement `ably-token` Edge Function.
-- [ ] Make token TTL 30 minutes.
-- [ ] Include capabilities for `chat:*`, `typing:*`, `receipt:*`, `presence:*`, and `user:{user_id}` only when membership allows it.
-- [ ] Implement Flutter Ably auth callback that calls Supabase Function with current Supabase JWT.
-- [ ] Implement realtime event parsing.
-- [ ] Run tests.
+- [x] Write `RealtimeEvent` tests for `message.created`, `message.persisted`, `message.rejected`, `receipt.delivered`, and `receipt.read`.
+- [x] Implement `ably-token` Edge Function.
+- [x] Make token TTL 30 minutes.
+- [x] Include capabilities for `chat:*`, `typing:*`, `receipt:*`, `presence:*`, and `user:{user_id}` only when membership allows it.
+- [x] Implement Flutter Ably auth callback that calls Supabase Function with current Supabase JWT.
+- [x] Implement realtime event parsing.
+- [x] Run tests.
 
 ```bash
 flutter test test/features/chat/realtime_event_test.dart
@@ -720,7 +720,7 @@ supabase functions serve ably-token
 
 Expected: Flutter tests pass; function starts locally.
 
-- [ ] Commit.
+- [x] Commit.
 
 ```bash
 git add supabase/functions/ably-token lib/core/realtime test/features/chat/realtime_event_test.dart

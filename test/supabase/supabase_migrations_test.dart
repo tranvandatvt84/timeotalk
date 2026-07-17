@@ -98,5 +98,24 @@ void main() {
       expect(source, contains('query.length < 2'));
       expect(source, contains('profiles'));
     });
+
+    test('defines membership-scoped Ably token function', () {
+      final ablyFunction = File('supabase/functions/ably-token/index.ts');
+
+      expect(ablyFunction.existsSync(), isTrue);
+
+      final source = ablyFunction.readAsStringSync();
+
+      expect(source, contains('ABLY_API_KEY'));
+      expect(source, contains('30 * 60 * 1000'));
+      expect(source, contains('conversation_members'));
+      expect(source, contains('left_at'));
+      expect(source, contains(r'chat:${conversationId}'));
+      expect(source, contains(r'typing:${conversationId}'));
+      expect(source, contains(r'receipt:${conversationId}'));
+      expect(source, contains(r'presence:${conversationId}'));
+      expect(source, contains(r'user:${userId}'));
+      expect(source, contains('HMAC'));
+    });
   });
 }
