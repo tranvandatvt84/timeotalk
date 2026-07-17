@@ -2,6 +2,7 @@ class ProfileModel {
   const ProfileModel({
     required this.id,
     required this.displayName,
+    this.handle,
     this.avatarUrl,
     this.status,
     this.lastSeenAt,
@@ -11,6 +12,7 @@ class ProfileModel {
 
   final String id;
   final String displayName;
+  final String? handle;
   final String? avatarUrl;
   final String? status;
   final DateTime? lastSeenAt;
@@ -21,6 +23,7 @@ class ProfileModel {
     return ProfileModel(
       id: json['id'] as String,
       displayName: json['display_name'] as String,
+      handle: json['handle'] as String?,
       avatarUrl: json['avatar_url'] as String?,
       status: json['status'] as String?,
       lastSeenAt: _dateTime(json['last_seen_at']),
@@ -33,6 +36,7 @@ class ProfileModel {
     return {
       'id': id,
       'display_name': displayName,
+      if (handle != null) 'handle': handle,
       if (avatarUrl != null) 'avatar_url': avatarUrl,
       if (status != null) 'status': status,
       if (lastSeenAt != null) 'last_seen_at': lastSeenAt!.toIso8601String(),
@@ -44,6 +48,7 @@ class ProfileModel {
   ProfileModel copyWith({
     String? id,
     String? displayName,
+    String? handle,
     String? avatarUrl,
     String? status,
     DateTime? lastSeenAt,
@@ -53,6 +58,7 @@ class ProfileModel {
     return ProfileModel(
       id: id ?? this.id,
       displayName: displayName ?? this.displayName,
+      handle: handle ?? this.handle,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       status: status ?? this.status,
       lastSeenAt: lastSeenAt ?? this.lastSeenAt,

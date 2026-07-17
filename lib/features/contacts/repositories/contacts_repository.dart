@@ -4,6 +4,7 @@ import 'package:timeotalk/core/database/app_database.dart';
 import 'package:timeotalk/core/network/supabase_client_provider.dart';
 import 'package:timeotalk/features/contacts/models/contact_model.dart';
 import 'package:timeotalk/features/contacts/models/invitation_model.dart';
+import 'package:timeotalk/features/contacts/models/profile_search_result_model.dart';
 
 enum InvitationResponseAction {
   accept('accepted'),
@@ -18,6 +19,8 @@ abstract class ContactsRepository {
   Future<List<ContactModel>> fetchContacts();
 
   Future<List<InvitationModel>> fetchInvitations();
+
+  Future<List<ProfileSearchResultModel>> searchProfiles(String query);
 
   Future<InvitationModel> sendInvitation({
     required String receiverId,
@@ -60,6 +63,32 @@ class SupabaseContactsRepository implements ContactsRepository {
 
     await _syncInvitations(invitations);
     return invitations;
+  }
+
+  @override
+  Future<List<ProfileSearchResultModel>> searchProfiles(String query) async {
+    final response = await _client.functions.invoke(
+      'search-users',
+      body: {'query': query},
+    );
+
+    if (response.status < 200 || response.status >= 300) {
+      throw StateError('Search function failed with ${response.status}.');
+    }
+
+    final data = response.data;
+    final profilesData = data is Map ? data['profiles'] : data;
+    if (profilesData is! List) {
+      throw const FormatException('Search function did not return profiles.');
+    }
+
+    return profilesData
+        .map(
+          (row) => ProfileSearchResultModel.fromJson(
+            Map<String, Object?>.from((row as Map).cast<String, Object?>()),
+          ),
+        )
+        .toList(growable: false);
   }
 
   @override

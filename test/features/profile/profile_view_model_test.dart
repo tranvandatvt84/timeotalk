@@ -10,6 +10,7 @@ void main() {
         profile: const ProfileModel(
           id: 'user_1',
           displayName: 'Dat Tran',
+          handle: 'dat',
           status: 'Building TimeoTalk',
         ),
       );
@@ -19,6 +20,7 @@ void main() {
 
       expect(repository.fetchCount, 1);
       expect(viewModel.state.profile?.displayName, 'Dat Tran');
+      expect(viewModel.state.profile?.handle, 'dat');
       expect(viewModel.state.profile?.status, 'Building TimeoTalk');
       expect(viewModel.state.isLoading, isFalse);
       expect(viewModel.state.errorMessage, isNull);
@@ -30,6 +32,7 @@ void main() {
         updatedProfile: const ProfileModel(
           id: 'user_1',
           displayName: 'Dat T.',
+          handle: 'dat_t',
           status: 'Online',
         ),
       );
@@ -37,12 +40,15 @@ void main() {
 
       await viewModel.updateProfile(
         displayName: ' Dat T. ',
+        handle: ' @Dat_T ',
         status: ' Online ',
       );
 
       expect(repository.lastDisplayName, 'Dat T.');
+      expect(repository.lastHandle, 'dat_t');
       expect(repository.lastStatus, 'Online');
       expect(viewModel.state.profile?.displayName, 'Dat T.');
+      expect(viewModel.state.profile?.handle, 'dat_t');
       expect(viewModel.state.profile?.status, 'Online');
       expect(viewModel.state.isSaving, isFalse);
       expect(viewModel.state.errorMessage, isNull);
@@ -54,9 +60,28 @@ void main() {
       );
       final viewModel = ProfileViewModel(repository: repository);
 
-      await viewModel.updateProfile(displayName: 'Dat', status: '   ');
+      await viewModel.updateProfile(
+        displayName: 'Dat',
+        handle: 'dat',
+        status: '   ',
+      );
 
       expect(repository.lastStatus, isNull);
+    });
+
+    test('updateProfile rejects blank and invalid handles', () async {
+      final repository = _FakeProfileRepository();
+      final viewModel = ProfileViewModel(repository: repository);
+
+      await viewModel.updateProfile(displayName: 'Dat', handle: '   ');
+
+      expect(repository.upsertCount, 0);
+      expect(viewModel.state.errorMessage, contains('Handle'));
+
+      await viewModel.updateProfile(displayName: 'Dat', handle: 'dat-tran');
+
+      expect(repository.upsertCount, 0);
+      expect(viewModel.state.errorMessage, contains('Handle'));
     });
 
     test('loadProfile surfaces repository errors', () async {
@@ -78,7 +103,11 @@ void main() {
       );
       final viewModel = ProfileViewModel(repository: repository);
 
-      await viewModel.updateProfile(displayName: 'Dat', status: 'Online');
+      await viewModel.updateProfile(
+        displayName: 'Dat',
+        handle: 'dat',
+        status: 'Online',
+      );
 
       expect(viewModel.state.isSaving, isFalse);
       expect(viewModel.state.didSave, isFalse);
@@ -106,7 +135,9 @@ class _FakeProfileRepository implements ProfileRepository {
   final Object? saveError;
 
   int fetchCount = 0;
+  int upsertCount = 0;
   String? lastDisplayName;
+  String? lastHandle;
   String? lastStatus;
 
   @override
@@ -122,14 +153,17 @@ class _FakeProfileRepository implements ProfileRepository {
   @override
   Future<ProfileModel> upsertCurrentUserProfile({
     required String displayName,
+    String? handle,
     String? avatarUrl,
     String? status,
   }) async {
+    upsertCount += 1;
     final error = saveError;
     if (error != null) {
       throw error;
     }
     lastDisplayName = displayName;
+    lastHandle = handle;
     lastStatus = status;
     return updatedProfile;
   }

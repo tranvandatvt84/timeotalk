@@ -7,6 +7,7 @@ abstract class ProfileRepository {
 
   Future<ProfileModel> upsertCurrentUserProfile({
     required String displayName,
+    String? handle,
     String? avatarUrl,
     String? status,
   });
@@ -44,6 +45,7 @@ class SupabaseProfileRepository implements ProfileRepository {
   @override
   Future<ProfileModel> upsertCurrentUserProfile({
     required String displayName,
+    String? handle,
     String? avatarUrl,
     String? status,
   }) async {
@@ -57,6 +59,9 @@ class SupabaseProfileRepository implements ProfileRepository {
       'display_name': displayName,
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     };
+    if (handle != null) {
+      payload['handle'] = normalizeProfileHandle(handle);
+    }
     if (avatarUrl != null) {
       payload['avatar_url'] = avatarUrl;
     }
@@ -72,6 +77,18 @@ class SupabaseProfileRepository implements ProfileRepository {
 
     return ProfileModel.fromJson(row);
   }
+}
+
+String normalizeProfileHandle(String handle) {
+  final trimmed = handle.trim();
+  final withoutPrefix = trimmed.startsWith('@')
+      ? trimmed.substring(1)
+      : trimmed;
+  return withoutPrefix.toLowerCase();
+}
+
+bool isValidProfileHandle(String handle) {
+  return RegExp(r'^[a-z0-9_]{3,24}$').hasMatch(normalizeProfileHandle(handle));
 }
 
 String profileDisplayNameForUser(User user) {

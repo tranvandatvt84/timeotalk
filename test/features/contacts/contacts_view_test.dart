@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:timeotalk/features/contacts/models/contact_model.dart';
 import 'package:timeotalk/features/contacts/models/invitation_model.dart';
+import 'package:timeotalk/features/contacts/models/profile_search_result_model.dart';
 import 'package:timeotalk/features/contacts/repositories/contacts_repository.dart';
 import 'package:timeotalk/features/contacts/viewmodels/contacts_view_model.dart';
 import 'package:timeotalk/features/contacts/views/contacts_view.dart';
@@ -34,7 +35,7 @@ void main() {
     expect(find.byType(AppBar), findsNothing);
     expect(find.text('Contacts'), findsOneWidget);
     expect(find.text('No contacts yet'), findsOneWidget);
-    expect(find.text('Send Invite'), findsOneWidget);
+    expect(find.byKey(const Key('contacts-search-users')), findsOneWidget);
   });
 
   testWidgets('contacts view renders populated contacts', (tester) async {
@@ -58,10 +59,17 @@ void main() {
     expect(find.text('AR'), findsOneWidget);
   });
 
-  testWidgets('contacts view sends invitation and clears the form', (
+  testWidgets('contacts view searches users and sends invitation from result', (
     tester,
   ) async {
     final repository = _FakeContactsRepository(
+      searchResults: [
+        const ProfileSearchResultModel(
+          id: 'friend_2',
+          displayName: 'Mia Chen',
+          handle: 'mia',
+        ),
+      ],
       sentInvitation: _invitation(id: 'sent_1', receiverId: 'friend_2'),
     );
     final viewModel = ContactsViewModel(repository: repository);
@@ -70,21 +78,63 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.byKey(const Key('contacts-invite-receiver')),
-      'friend_2',
+      find.byKey(const Key('contacts-search-users')),
+      '@mia',
     );
     await tester.enterText(
       find.byKey(const Key('contacts-invite-message')),
       'Let us chat',
     );
-    await tester.tap(find.byKey(const Key('contacts-send-invite')));
+    await tester.pumpAndSettle();
+
+    expect(repository.lastSearchQuery, 'mia');
+    expect(find.text('Mia Chen'), findsOneWidget);
+    expect(find.text('@mia'), findsWidgets);
+
+    await tester.tap(find.byKey(const Key('contacts-add-profile-friend_2')));
     await tester.pumpAndSettle();
 
     expect(repository.lastReceiverId, 'friend_2');
     expect(repository.lastMessage, 'Let us chat');
-    expect(find.text('friend_2'), findsNothing);
+    expect(find.text('@mia'), findsNothing);
     expect(find.text('Let us chat'), findsNothing);
     expect(find.text('Pending invitations: 1'), findsOneWidget);
+  });
+
+  testWidgets('contacts view shows no results for an unmatched search', (
+    tester,
+  ) async {
+    final viewModel = ContactsViewModel(repository: _FakeContactsRepository());
+
+    await tester.pumpWidget(_harness(ContactsView(viewModel: viewModel)));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('contacts-search-users')),
+      'nobody',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('No users found'), findsOneWidget);
+  });
+
+  testWidgets('contacts view shows search error state', (tester) async {
+    final viewModel = ContactsViewModel(
+      repository: _FakeContactsRepository(
+        searchError: StateError('search unavailable'),
+      ),
+    );
+
+    await tester.pumpWidget(_harness(ContactsView(viewModel: viewModel)));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('contacts-search-users')),
+      'alex',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('search unavailable'), findsOneWidget);
   });
 
   testWidgets('contacts view opens invitations with shared view model', (
@@ -157,6 +207,8 @@ class _FakeContactsRepository implements ContactsRepository {
     this.invitations = const [],
     this.loadError,
     this.contactsCompleter,
+    this.searchResults = const [],
+    this.searchError,
     InvitationModel? sentInvitation,
     InvitationModel? responseInvitation,
   }) : sentInvitation =
@@ -170,12 +222,15 @@ class _FakeContactsRepository implements ContactsRepository {
   final List<InvitationModel> invitations;
   final Object? loadError;
   final Completer<List<ContactModel>>? contactsCompleter;
+  final List<ProfileSearchResultModel> searchResults;
+  final Object? searchError;
   final InvitationModel sentInvitation;
   final InvitationModel responseInvitation;
 
   String? lastReceiverId;
   String? lastMessage;
   String? lastInvitationId;
+  String? lastSearchQuery;
   InvitationResponseAction? lastAction;
 
   @override
@@ -210,6 +265,16 @@ class _FakeContactsRepository implements ContactsRepository {
     lastReceiverId = receiverId;
     lastMessage = message;
     return sentInvitation;
+  }
+
+  @override
+  Future<List<ProfileSearchResultModel>> searchProfiles(String query) async {
+    lastSearchQuery = query;
+    final error = searchError;
+    if (error != null) {
+      throw error;
+    }
+    return searchResults;
   }
 
   @override

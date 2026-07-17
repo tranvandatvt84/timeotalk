@@ -66,10 +66,24 @@ class ProfileViewModel extends ChangeNotifier {
 
   Future<void> updateProfile({
     required String displayName,
+    required String handle,
     String? status,
   }) async {
     final normalizedDisplayName = displayName.trim();
+    final normalizedHandle = normalizeProfileHandle(handle);
     final normalizedStatus = status?.trim();
+
+    if (!isValidProfileHandle(normalizedHandle)) {
+      _setState(
+        _state.copyWith(
+          isSaving: false,
+          errorMessage:
+              'Handle must be 3-24 lowercase letters, numbers, or underscores.',
+          didSave: false,
+        ),
+      );
+      return;
+    }
 
     _setState(
       _state.copyWith(isSaving: true, clearError: true, didSave: false),
@@ -78,6 +92,7 @@ class ProfileViewModel extends ChangeNotifier {
     try {
       final profile = await _repository.upsertCurrentUserProfile(
         displayName: normalizedDisplayName,
+        handle: normalizedHandle,
         status: normalizedStatus == null || normalizedStatus.isEmpty
             ? null
             : normalizedStatus,

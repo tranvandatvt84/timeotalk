@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:timeotalk/app/main_shell.dart';
 import 'package:timeotalk/features/contacts/models/contact_model.dart';
 import 'package:timeotalk/features/contacts/models/invitation_model.dart';
+import 'package:timeotalk/features/contacts/models/profile_search_result_model.dart';
 import 'package:timeotalk/features/contacts/repositories/contacts_repository.dart';
 import 'package:timeotalk/features/contacts/viewmodels/contacts_view_model.dart';
 import 'package:timeotalk/features/contacts/views/contacts_view.dart';
@@ -145,10 +146,15 @@ class _FakeProfileRepository implements ProfileRepository {
   @override
   Future<ProfileModel> upsertCurrentUserProfile({
     required String displayName,
+    String? handle,
     String? avatarUrl,
     String? status,
   }) async {
-    return profile.copyWith(displayName: displayName, status: status);
+    return profile.copyWith(
+      displayName: displayName,
+      handle: handle,
+      status: status,
+    );
   }
 }
 
@@ -162,6 +168,11 @@ class _FakeContactsRepository implements ContactsRepository {
 
   @override
   Future<List<InvitationModel>> fetchInvitations() async => const [];
+
+  @override
+  Future<List<ProfileSearchResultModel>> searchProfiles(String query) async {
+    return const [];
+  }
 
   @override
   Future<InvitationModel> sendInvitation({

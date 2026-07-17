@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:timeotalk/features/contacts/models/contact_model.dart';
+import 'package:timeotalk/features/contacts/models/profile_search_result_model.dart';
 import 'package:timeotalk/features/contacts/repositories/contacts_repository.dart';
 import 'package:timeotalk/features/contacts/viewmodels/contacts_view_model.dart';
 import 'package:timeotalk/features/contacts/views/invitations_view.dart';
@@ -15,7 +18,7 @@ class ContactsView extends StatefulWidget {
 }
 
 class _ContactsViewState extends State<ContactsView> {
-  final _receiverController = TextEditingController();
+  final _searchController = TextEditingController();
   final _messageController = TextEditingController();
 
   late final ContactsViewModel _viewModel;
@@ -33,7 +36,7 @@ class _ContactsViewState extends State<ContactsView> {
 
   @override
   void dispose() {
-    _receiverController.dispose();
+    _searchController.dispose();
     _messageController.dispose();
     if (_ownsViewModel) {
       _viewModel.dispose();
@@ -89,11 +92,17 @@ class _ContactsViewState extends State<ContactsView> {
                       onOpenInvitations: _openInvitations,
                     ),
                     const SizedBox(height: 24),
-                    _InvitePanel(
-                      receiverController: _receiverController,
+                    _SearchInvitePanel(
+                      searchController: _searchController,
                       messageController: _messageController,
                       isLoading: state.isLoading,
-                      onSend: _sendInvitation,
+                      isSearching: state.isSearching,
+                      searchQuery: state.searchQuery,
+                      searchResults: state.searchResults,
+                      searchErrorMessage: state.searchErrorMessage,
+                      onSearchChanged: (query) =>
+                          unawaited(_viewModel.searchProfiles(query)),
+                      onAddProfile: _sendInvitation,
                     ),
                     if (state.errorMessage != null) ...[
                       const SizedBox(height: 16),
@@ -130,14 +139,9 @@ class _ContactsViewState extends State<ContactsView> {
     );
   }
 
-  Future<void> _sendInvitation() async {
-    final receiverId = _receiverController.text.trim();
-    if (receiverId.isEmpty) {
-      return;
-    }
-
+  Future<void> _sendInvitation(ProfileSearchResultModel profile) async {
     await _viewModel.sendInvitation(
-      receiverId: receiverId,
+      receiverId: profile.id,
       message: _messageController.text,
     );
 
@@ -145,8 +149,9 @@ class _ContactsViewState extends State<ContactsView> {
       return;
     }
 
-    _receiverController.clear();
+    _searchController.clear();
     _messageController.clear();
+    _viewModel.clearSearch();
   }
 }
 
@@ -196,18 +201,28 @@ class _ContactsHeader extends StatelessWidget {
   }
 }
 
-class _InvitePanel extends StatelessWidget {
-  const _InvitePanel({
-    required this.receiverController,
+class _SearchInvitePanel extends StatelessWidget {
+  const _SearchInvitePanel({
+    required this.searchController,
     required this.messageController,
     required this.isLoading,
-    required this.onSend,
+    required this.isSearching,
+    required this.searchQuery,
+    required this.searchResults,
+    required this.searchErrorMessage,
+    required this.onSearchChanged,
+    required this.onAddProfile,
   });
 
-  final TextEditingController receiverController;
+  final TextEditingController searchController;
   final TextEditingController messageController;
   final bool isLoading;
-  final VoidCallback onSend;
+  final bool isSearching;
+  final String searchQuery;
+  final List<ProfileSearchResultModel> searchResults;
+  final String? searchErrorMessage;
+  final ValueChanged<String> onSearchChanged;
+  final ValueChanged<ProfileSearchResultModel> onAddProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -215,12 +230,13 @@ class _InvitePanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TextField(
-          key: const Key('contacts-invite-receiver'),
-          controller: receiverController,
+          key: const Key('contacts-search-users'),
+          controller: searchController,
+          onChanged: onSearchChanged,
           decoration: const InputDecoration(
-            labelText: 'Profile ID',
+            labelText: 'Search by handle or display name',
             border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.person_add_alt),
+            prefixIcon: Icon(Icons.search),
           ),
         ),
         const SizedBox(height: 8),
@@ -233,15 +249,87 @@ class _InvitePanel extends StatelessWidget {
             prefixIcon: Icon(Icons.chat_bubble_outline),
           ),
         ),
-        const SizedBox(height: 8),
-        FilledButton.icon(
-          key: const Key('contacts-send-invite'),
-          onPressed: isLoading ? null : onSend,
-          icon: const Icon(Icons.send),
-          label: const Text('Send Invite'),
-        ),
+        if (isSearching) ...[
+          const SizedBox(height: 12),
+          const LinearProgressIndicator(),
+        ],
+        if (searchErrorMessage != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            searchErrorMessage!,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        ],
+        if (!isSearching &&
+            searchErrorMessage == null &&
+            searchQuery.length >= 2 &&
+            searchResults.isEmpty) ...[
+          const SizedBox(height: 12),
+          const ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.search_off),
+            title: Text('No users found'),
+          ),
+        ],
+        for (final profile in searchResults) ...[
+          const SizedBox(height: 12),
+          _ProfileSearchResultTile(
+            profile: profile,
+            isLoading: isLoading,
+            onAdd: () => onAddProfile(profile),
+          ),
+        ],
       ],
     );
+  }
+}
+
+class _ProfileSearchResultTile extends StatelessWidget {
+  const _ProfileSearchResultTile({
+    required this.profile,
+    required this.isLoading,
+    required this.onAdd,
+  });
+
+  final ProfileSearchResultModel profile;
+  final bool isLoading;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: CircleAvatar(
+        backgroundImage: profile.avatarUrl == null
+            ? null
+            : NetworkImage(profile.avatarUrl!),
+        child: profile.avatarUrl == null
+            ? Text(_initials(profile.displayName))
+            : null,
+      ),
+      title: Text(profile.displayName),
+      subtitle: Text('@${profile.handle}'),
+      trailing: IconButton.filledTonal(
+        key: Key('contacts-add-profile-${profile.id}'),
+        tooltip: 'Add',
+        onPressed: isLoading ? null : onAdd,
+        icon: const Icon(Icons.person_add_alt),
+      ),
+    );
+  }
+
+  String _initials(String value) {
+    final words = value
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .toList(growable: false);
+
+    if (words.isEmpty) {
+      return '?';
+    }
+
+    return words.take(2).map((word) => word[0].toUpperCase()).join();
   }
 }
 

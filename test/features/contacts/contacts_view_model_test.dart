@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:timeotalk/features/contacts/models/contact_model.dart';
 import 'package:timeotalk/features/contacts/models/invitation_model.dart';
+import 'package:timeotalk/features/contacts/models/profile_search_result_model.dart';
 import 'package:timeotalk/features/contacts/repositories/contacts_repository.dart';
 import 'package:timeotalk/features/contacts/viewmodels/contacts_view_model.dart';
 
@@ -64,6 +65,66 @@ void main() {
       expect(viewModel.state.errorMessage, isNull);
     });
 
+    test('searchProfiles exposes loading state, query, and results', () async {
+      final repository = _FakeContactsRepository(
+        searchResults: [
+          const ProfileSearchResultModel(
+            id: 'profile_1',
+            displayName: 'Alex Rivera',
+            handle: 'alex',
+          ),
+        ],
+      );
+      final viewModel = ContactsViewModel(repository: repository);
+
+      final future = viewModel.searchProfiles(' @Alex ');
+
+      expect(viewModel.state.isSearching, isTrue);
+      expect(viewModel.state.searchQuery, 'alex');
+
+      await future;
+
+      expect(repository.lastSearchQuery, 'alex');
+      expect(viewModel.state.isSearching, isFalse);
+      expect(viewModel.state.searchResults.single.handle, 'alex');
+      expect(viewModel.state.searchErrorMessage, isNull);
+    });
+
+    test('searchProfiles clears results for short queries', () async {
+      final repository = _FakeContactsRepository(
+        searchResults: [
+          const ProfileSearchResultModel(
+            id: 'profile_1',
+            displayName: 'Alex Rivera',
+            handle: 'alex',
+          ),
+        ],
+      );
+      final viewModel = ContactsViewModel(repository: repository);
+
+      await viewModel.searchProfiles('alex');
+      await viewModel.searchProfiles('a');
+
+      expect(repository.searchCount, 1);
+      expect(viewModel.state.searchResults, isEmpty);
+      expect(viewModel.state.searchQuery, 'a');
+    });
+
+    test('searchProfiles exposes repository errors', () async {
+      final repository = _FakeContactsRepository(
+        searchError: StateError('search unavailable'),
+      );
+      final viewModel = ContactsViewModel(repository: repository);
+
+      await viewModel.searchProfiles('alex');
+
+      expect(viewModel.state.isSearching, isFalse);
+      expect(
+        viewModel.state.searchErrorMessage,
+        contains('search unavailable'),
+      );
+    });
+
     test('acceptInvitation updates invitation status', () async {
       final repository = _FakeContactsRepository(
         invitations: [_invitation(id: 'inv_1', status: 'pending')],
@@ -120,6 +181,8 @@ class _FakeContactsRepository implements ContactsRepository {
     InvitationModel? sentInvitation,
     InvitationModel? responseInvitation,
     this.loadError,
+    this.searchResults = const [],
+    this.searchError,
   }) : sentInvitation =
            sentInvitation ??
            _invitation(id: 'sent_invitation', status: 'pending'),
@@ -132,12 +195,16 @@ class _FakeContactsRepository implements ContactsRepository {
   final InvitationModel sentInvitation;
   final InvitationModel responseInvitation;
   final Object? loadError;
+  final List<ProfileSearchResultModel> searchResults;
+  final Object? searchError;
 
   int fetchContactsCount = 0;
   int fetchInvitationsCount = 0;
+  int searchCount = 0;
   String? lastReceiverId;
   String? lastMessage;
   String? lastInvitationId;
+  String? lastSearchQuery;
   InvitationResponseAction? lastAction;
 
   @override
@@ -168,6 +235,17 @@ class _FakeContactsRepository implements ContactsRepository {
     lastReceiverId = receiverId;
     lastMessage = message;
     return sentInvitation;
+  }
+
+  @override
+  Future<List<ProfileSearchResultModel>> searchProfiles(String query) async {
+    searchCount += 1;
+    lastSearchQuery = query;
+    final error = searchError;
+    if (error != null) {
+      throw error;
+    }
+    return searchResults;
   }
 
   @override

@@ -566,19 +566,26 @@ git commit -m "feat: wire auth frontend"
 **Files:**
 
 - Modify: `lib/features/profile/repositories/profile_repository.dart`
+- Modify: `lib/features/profile/models/profile_model.dart`
 - Create: `lib/features/profile/viewmodels/profile_view_model.dart`
 - Create: `lib/features/profile/views/profile_view.dart`
 - Modify: `lib/app/main_shell.dart`
+- Create: `supabase/migrations/0004_profile_handles.sql`
 - Create: `test/features/profile/profile_view_model_test.dart`
 - Create: `test/features/profile/profile_view_test.dart`
+- Modify: `test/features/profile/profile_repository_test.dart`
+- Modify: `test/supabase/supabase_migrations_test.dart`
 - Modify: `test/app/main_shell_test.dart`
 
 **Interfaces:**
 
 - Consumes: `ProfileRepository.upsertCurrentUserProfile(displayName, avatarUrl, status)`
+- Consumes: `ProfileRepository.upsertCurrentUserProfile(displayName, handle, avatarUrl, status)`
 - Produces: `ProfileRepository.fetchCurrentUserProfile()`
+- Produces: `ProfileModel.handle`
 - Produces: `ProfileViewModel.loadProfile()`
 - Produces: `ProfileViewModel.updateProfile(displayName, status)`
+- Produces: `ProfileViewModel.updateProfile(displayName, handle, status)`
 - Produces: `ProfileView`
 - Consumes in shell: `ProfileView` for the Profile tab content
 
@@ -590,6 +597,11 @@ git commit -m "feat: wire auth frontend"
 - [x] Replace the blank Profile tab in `MainShell` with `ProfileView`.
 - [x] Update shell/widget tests so the Profile tab renders the real `ProfileView` while keeping the icon-only navbar.
 - [x] Run profile tests and analyzer.
+- [x] Add a profile `handle` column with lowercase uniqueness, handle format validation, and a migration test.
+- [x] Update `ProfileModel`, `ProfileRepository`, and `ProfileViewModel` to load and save the current user's handle.
+- [x] Add a handle field to `ProfileView` so users can claim or edit their searchable `@handle`.
+- [x] Add profile tests for handle rendering, handle save, blank/invalid handle validation, and repository error state.
+- [x] Run profile handle tests, migration tests, and analyzer.
 
 ```bash
 flutter test test/features/profile/profile_view_model_test.dart
@@ -617,18 +629,25 @@ git commit -m "feat: add profile screen"
 
 - Modify: `lib/features/contacts/views/contacts_view.dart`
 - Modify: `lib/features/contacts/views/invitations_view.dart`
+- Create: `lib/features/contacts/models/profile_search_result_model.dart`
+- Modify: `lib/features/contacts/repositories/contacts_repository.dart`
 - Modify: `lib/features/contacts/viewmodels/contacts_view_model.dart`
 - Modify: `lib/app/main_shell.dart`
+- Create: `supabase/functions/search-users/index.ts`
 - Create: `test/features/contacts/contacts_view_test.dart`
 - Modify: `test/features/contacts/contacts_view_model_test.dart`
+- Create: `test/features/contacts/profile_search_result_model_test.dart`
 - Modify: `test/app/main_shell_test.dart`
 
 **Interfaces:**
 
 - Consumes: `ContactsViewModel.load()`
 - Consumes: `ContactsViewModel.sendInvitation(receiverId, message)`
+- Consumes: `ContactsViewModel.searchProfiles(query)`
 - Consumes: `ContactsViewModel.acceptInvitation(invitationId)`
 - Consumes: `ContactsViewModel.declineInvitation(invitationId)`
+- Produces: `ContactsRepository.searchProfiles(query)`
+- Produces: `ProfileSearchResultModel`
 - Produces: `ContactsView` as the Contacts tab content
 - Produces: `InvitationsView` navigation from the Contacts screen
 
@@ -639,6 +658,16 @@ git commit -m "feat: add profile screen"
 - [x] Replace the blank Contacts tab in `MainShell` with `ContactsView`.
 - [x] Update shell/widget tests so the Contacts tab renders the real `ContactsView` while keeping the icon-only navbar.
 - [x] Run contacts tests and analyzer.
+- [x] Write failing ViewModel tests for profile search loading, results, empty results, and repository search errors.
+- [x] Write failing widget tests for the contacts search bar, typing by handle/display name, showing user results, no-results state, and tapping Add.
+- [x] Implement `ProfileSearchResultModel` with `id`, `displayName`, `handle`, and optional `avatarUrl`.
+- [x] Implement a `search-users` Edge Function that searches `profiles.handle` and `profiles.display_name`, excludes the current user, returns only safe public fields, and does not expose unrestricted profile reads through RLS.
+- [x] Add `ContactsRepository.searchProfiles(query)` that calls `search-users`.
+- [x] Add `ContactsViewModel.searchProfiles(query)` state for `searchQuery`, `searchResults`, `isSearching`, and `searchErrorMessage`.
+- [x] Replace the raw Profile ID invite field with a search bar that finds users by `@handle` or display name.
+- [x] Show search results with avatar/initials, display name, `@handle`, and an Add action that sends the invitation using the selected user's profile id.
+- [x] Clear search results and invite message after a successful Add, while preserving errors when invitation sending fails.
+- [x] Run contacts search tests, Edge Function checks, and analyzer.
 
 ```bash
 flutter test test/features/contacts/contacts_view_model_test.dart

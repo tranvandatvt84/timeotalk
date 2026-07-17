@@ -1,33 +1,53 @@
 import 'package:flutter/foundation.dart';
 import 'package:timeotalk/features/contacts/models/contact_model.dart';
 import 'package:timeotalk/features/contacts/models/invitation_model.dart';
+import 'package:timeotalk/features/contacts/models/profile_search_result_model.dart';
 import 'package:timeotalk/features/contacts/repositories/contacts_repository.dart';
 
 class ContactsViewState {
   const ContactsViewState({
     this.contacts = const [],
     this.invitations = const [],
+    this.searchQuery = '',
+    this.searchResults = const [],
     this.isLoading = false,
+    this.isSearching = false,
     this.errorMessage,
+    this.searchErrorMessage,
   });
 
   final List<ContactModel> contacts;
   final List<InvitationModel> invitations;
+  final String searchQuery;
+  final List<ProfileSearchResultModel> searchResults;
   final bool isLoading;
+  final bool isSearching;
   final String? errorMessage;
+  final String? searchErrorMessage;
 
   ContactsViewState copyWith({
     List<ContactModel>? contacts,
     List<InvitationModel>? invitations,
+    String? searchQuery,
+    List<ProfileSearchResultModel>? searchResults,
     bool? isLoading,
+    bool? isSearching,
     String? errorMessage,
+    String? searchErrorMessage,
     bool clearError = false,
+    bool clearSearchError = false,
   }) {
     return ContactsViewState(
       contacts: contacts ?? this.contacts,
       invitations: invitations ?? this.invitations,
+      searchQuery: searchQuery ?? this.searchQuery,
+      searchResults: searchResults ?? this.searchResults,
       isLoading: isLoading ?? this.isLoading,
+      isSearching: isSearching ?? this.isSearching,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+      searchErrorMessage: clearSearchError
+          ? null
+          : searchErrorMessage ?? this.searchErrorMessage,
     );
   }
 }
@@ -83,6 +103,60 @@ class ContactsViewModel extends ChangeNotifier {
         _state.copyWith(isLoading: false, errorMessage: error.toString()),
       );
     }
+  }
+
+  Future<void> searchProfiles(String query) async {
+    final normalizedQuery = _normalizeSearchQuery(query);
+    if (normalizedQuery.length < 2) {
+      _setState(
+        _state.copyWith(
+          searchQuery: normalizedQuery,
+          searchResults: const [],
+          isSearching: false,
+          clearSearchError: true,
+        ),
+      );
+      return;
+    }
+
+    _setState(
+      _state.copyWith(
+        searchQuery: normalizedQuery,
+        isSearching: true,
+        clearSearchError: true,
+      ),
+    );
+
+    try {
+      final results = await _repository.searchProfiles(normalizedQuery);
+      if (_state.searchQuery != normalizedQuery) {
+        return;
+      }
+
+      _setState(_state.copyWith(searchResults: results, isSearching: false));
+    } catch (error) {
+      if (_state.searchQuery != normalizedQuery) {
+        return;
+      }
+
+      _setState(
+        _state.copyWith(
+          isSearching: false,
+          searchErrorMessage: error.toString(),
+        ),
+      );
+    }
+  }
+
+  void clearSearch() {
+    _setState(
+      _state.copyWith(
+        searchQuery: '',
+        searchResults: const [],
+        isSearching: false,
+        clearSearchError: true,
+      ),
+    );
   }
 
   Future<void> acceptInvitation(String invitationId) {
@@ -147,4 +221,12 @@ class ContactsViewModel extends ChangeNotifier {
     _state = state;
     notifyListeners();
   }
+}
+
+String _normalizeSearchQuery(String query) {
+  final trimmed = query.trim();
+  final withoutPrefix = trimmed.startsWith('@')
+      ? trimmed.substring(1)
+      : trimmed;
+  return withoutPrefix.toLowerCase();
 }

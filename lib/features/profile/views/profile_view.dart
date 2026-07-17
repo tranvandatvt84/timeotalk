@@ -17,6 +17,7 @@ class ProfileView extends StatefulWidget {
 
 class _ProfileViewState extends State<ProfileView> {
   final _displayNameController = TextEditingController();
+  final _handleController = TextEditingController();
   final _statusController = TextEditingController();
 
   late final ProfileViewModel _viewModel;
@@ -36,6 +37,7 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   void dispose() {
     _displayNameController.dispose();
+    _handleController.dispose();
     _statusController.dispose();
     if (_ownsViewModel) {
       _viewModel.dispose();
@@ -127,6 +129,17 @@ class _ProfileViewState extends State<ProfileView> {
                     ),
                     const SizedBox(height: 12),
                     TextField(
+                      key: const Key('profile-handle'),
+                      controller: _handleController,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Handle',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.alternate_email),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
                       key: const Key('profile-status'),
                       controller: _statusController,
                       minLines: 1,
@@ -166,12 +179,13 @@ class _ProfileViewState extends State<ProfileView> {
     }
 
     final signature =
-        '${profile.id}:${profile.displayName}:${profile.status ?? ''}';
+        '${profile.id}:${profile.displayName}:${profile.handle ?? ''}:${profile.status ?? ''}';
     if (_lastSyncedProfileSignature == signature) {
       return;
     }
 
     _displayNameController.text = profile.displayName;
+    _handleController.text = profile.handle ?? '';
     _statusController.text = profile.status ?? '';
     _lastSyncedProfileSignature = signature;
   }
@@ -179,6 +193,7 @@ class _ProfileViewState extends State<ProfileView> {
   Future<void> _saveProfile() {
     return _viewModel.updateProfile(
       displayName: _displayNameController.text,
+      handle: _handleController.text,
       status: _statusController.text,
     );
   }
@@ -225,6 +240,14 @@ class _ProfileHeader extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                profile.handle == null ? 'No handle yet' : '@${profile.handle}',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 4),

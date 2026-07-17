@@ -67,5 +67,35 @@ void main() {
         expect(sql, contains(policy));
       }
     });
+
+    test('defines searchable unique profile handles', () {
+      final handleSchema = File('supabase/migrations/0004_profile_handles.sql');
+
+      expect(handleSchema.existsSync(), isTrue);
+
+      final sql = handleSchema.readAsStringSync();
+
+      expect(sql, contains('alter table profiles'));
+      expect(sql, contains('handle text'));
+      expect(sql, contains('profiles_handle_format_check'));
+      expect(sql, contains('handle = lower(handle)'));
+      expect(sql, contains("handle ~ '^[a-z0-9_]{3,24}\$'"));
+      expect(sql, contains('create unique index profiles_handle_unique_idx'));
+      expect(sql, contains('where handle is not null'));
+    });
+
+    test('defines a safe user search edge function', () {
+      final searchFunction = File('supabase/functions/search-users/index.ts');
+
+      expect(searchFunction.existsSync(), isTrue);
+
+      final source = searchFunction.readAsStringSync();
+
+      expect(source, contains('SUPABASE_SERVICE_ROLE_KEY'));
+      expect(source, contains('display_name,handle,avatar_url'));
+      expect(source, contains('.neq("id", user.id)'));
+      expect(source, contains('query.length < 2'));
+      expect(source, contains('profiles'));
+    });
   });
 }

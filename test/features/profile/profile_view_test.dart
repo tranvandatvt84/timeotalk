@@ -12,6 +12,7 @@ void main() {
         profile: const ProfileModel(
           id: 'user_1',
           displayName: 'Dat Tran',
+          handle: 'dat',
           status: 'Building TimeoTalk',
         ),
       ),
@@ -23,6 +24,7 @@ void main() {
     expect(find.byKey(const Key('profile-view')), findsOneWidget);
     expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Dat Tran'), findsWidgets);
+    expect(find.text('@dat'), findsOneWidget);
     expect(find.text('Building TimeoTalk'), findsWidgets);
     expect(find.text('user_1'), findsOneWidget);
     expect(find.text('DT'), findsOneWidget);
@@ -34,6 +36,7 @@ void main() {
       updatedProfile: const ProfileModel(
         id: 'user_1',
         displayName: 'Dat T.',
+        handle: 'dat_t',
         status: 'Online',
       ),
     );
@@ -46,12 +49,14 @@ void main() {
       find.byKey(const Key('profile-display-name')),
       'Dat T.',
     );
+    await tester.enterText(find.byKey(const Key('profile-handle')), '@Dat_T');
     await tester.enterText(find.byKey(const Key('profile-status')), 'Online');
     await tester.tap(find.text('Save Profile'));
     await tester.pump();
     await tester.pump();
 
     expect(repository.lastDisplayName, 'Dat T.');
+    expect(repository.lastHandle, 'dat_t');
     expect(repository.lastStatus, 'Online');
     expect(find.text('Saved'), findsOneWidget);
   });
@@ -63,6 +68,7 @@ void main() {
       profile: const ProfileModel(
         id: 'user_1',
         displayName: 'Dat Tran',
+        handle: 'dat',
         status: 'Before refresh',
       ),
     );
@@ -77,6 +83,7 @@ void main() {
     repository.profile = const ProfileModel(
       id: 'user_1',
       displayName: 'Dat Tran',
+      handle: 'dat',
       status: 'After refresh',
     );
 
@@ -130,6 +137,7 @@ class _FakeProfileRepository implements ProfileRepository {
 
   int fetchCount = 0;
   String? lastDisplayName;
+  String? lastHandle;
   String? lastStatus;
 
   @override
@@ -145,10 +153,12 @@ class _FakeProfileRepository implements ProfileRepository {
   @override
   Future<ProfileModel> upsertCurrentUserProfile({
     required String displayName,
+    String? handle,
     String? avatarUrl,
     String? status,
   }) async {
     lastDisplayName = displayName;
+    lastHandle = handle;
     lastStatus = status;
     return updatedProfile;
   }

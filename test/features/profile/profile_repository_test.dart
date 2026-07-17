@@ -28,6 +28,23 @@ void main() {
       expect(profileDisplayNameForUser(user), 'dat');
     });
   });
+
+  group('profile handle validation', () {
+    test('normalizes casing and optional at-prefix', () {
+      expect(normalizeProfileHandle(' @Dat_Tran '), 'dat_tran');
+    });
+
+    test('accepts lowercase letters, numbers, and underscores', () {
+      expect(isValidProfileHandle('dat_84'), isTrue);
+    });
+
+    test('rejects blank, short, spaced, and dashed handles', () {
+      expect(isValidProfileHandle(''), isFalse);
+      expect(isValidProfileHandle('dt'), isFalse);
+      expect(isValidProfileHandle('dat tran'), isFalse);
+      expect(isValidProfileHandle('dat-tran'), isFalse);
+    });
+  });
 }
 
 User _user({String? email, Map<String, dynamic>? metadata}) {
