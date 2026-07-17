@@ -874,15 +874,15 @@ git commit -m "feat: persist realtime messages"
 - Produces: `typing.started`
 - Produces: `typing.stopped`
 
-- [ ] Subscribe to `chat:{conversation_id}` when chat view opens.
-- [ ] Insert received `message.created` into SQLite.
-- [ ] Dedupe by `client_message_id`.
-- [ ] Publish `receipt.delivered` after local save.
-- [ ] Publish `receipt.read` when conversation is visible.
-- [ ] Render message bubbles from SQLite stream.
-- [ ] Render pending, delivered, read, failed, rejected, and persisted states.
-- [ ] Add typing indicator publish with debounce.
-- [ ] Run widget tests for chat view states.
+- [x] Subscribe to `chat:{conversation_id}` when chat view opens.
+- [x] Insert received `message.created` into SQLite.
+- [x] Dedupe by `client_message_id`.
+- [x] Publish `receipt.delivered` after local save.
+- [x] Publish `receipt.read` when conversation is visible.
+- [x] Render message bubbles from SQLite stream.
+- [x] Render pending, delivered, read, failed, rejected, and persisted states.
+- [x] Add typing indicator publish with debounce.
+- [x] Run widget tests for chat view states.
 
 ```bash
 flutter test test/features/chat
@@ -891,7 +891,7 @@ flutter analyze
 
 Expected: tests and analyzer pass.
 
-- [ ] Commit.
+- [x] Commit.
 
 ```bash
 git add lib/features/chat test/features/chat

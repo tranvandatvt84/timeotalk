@@ -1,14 +1,49 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
 import 'package:timeotalk/core/database/app_database.dart';
 import 'package:timeotalk/features/chat/models/chat_message_model.dart';
+import 'package:timeotalk/features/chat/models/chat_receipt_model.dart';
 import 'package:timeotalk/features/chat/repositories/chat_realtime_repository.dart';
 
 class ChatLocalRepository {
   ChatLocalRepository({required AppDatabase database}) : _database = database;
 
   final AppDatabase _database;
+  final _messageUpdates = StreamController<String>.broadcast();
+
+  Stream<List<ChatMessageModel>> watchMessages(
+    String conversationId, {
+    bool includeInitial = true,
+  }) async* {
+    if (includeInitial) {
+      yield await fetchMessages(conversationId);
+    }
+    yield* _messageUpdates.stream
+        .where(
+          (updatedConversationId) => updatedConversationId == conversationId,
+        )
+        .asyncMap((_) => fetchMessages(conversationId));
+  }
+
+  Future<List<ChatMessageModel>> fetchMessages(String conversationId) async {
+    final rows = await _database.transaction((transaction) {
+      return transaction.query(
+        'local_messages',
+        where: 'conversation_id = ?',
+        whereArgs: [conversationId],
+        orderBy: 'coalesce(server_created_at, client_created_at) asc',
+      );
+    });
+
+    return rows
+        .map(
+          (row) =>
+              ChatMessageModel.fromLocalRow(Map<String, Object?>.from(row)),
+        )
+        .toList(growable: false);
+  }
 
   Future<ChatMessageModel> insertOutgoingMessage(
     ChatMessageModel message,
@@ -20,7 +55,39 @@ class ChatLocalRepository {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     });
+    _notifyConversation(message.conversationId);
     return message;
+  }
+
+  Future<ReceivedMessageResult> insertReceivedMessage(
+    ChatMessageModel message,
+  ) async {
+    final existing = await fetchMessageByClientId(message.clientMessageId);
+    if (existing != null) {
+      return ReceivedMessageResult(message: existing, isNew: false);
+    }
+
+    final now = DateTime.now().toUtc();
+    final received = ChatMessageModel(
+      clientMessageId: message.clientMessageId,
+      serverMessageId: message.serverMessageId,
+      conversationId: message.conversationId,
+      senderId: message.senderId ?? 'unknown',
+      senderDeviceId: message.senderDeviceId,
+      type: message.type,
+      body: message.body,
+      attachments: message.attachments,
+      replyToMessageId: message.replyToMessageId,
+      localStatus: message.localStatus ?? 'received',
+      deliveryStatus: message.deliveryStatus,
+      persistenceStatus: message.persistenceStatus,
+      clientCreatedAt: message.clientCreatedAt ?? now,
+      serverCreatedAt: message.serverCreatedAt,
+      updatedAt: message.updatedAt ?? now,
+    );
+
+    await insertOutgoingMessage(received);
+    return ReceivedMessageResult(message: received, isNew: true);
   }
 
   Future<void> markMessageSentRealtime(String clientMessageId) {
@@ -90,6 +157,48 @@ class ChatLocalRepository {
     );
   }
 
+  Future<ChatMessageModel?> fetchMessageByServerId(
+    String serverMessageId,
+  ) async {
+    final rows = await _database.transaction((transaction) {
+      return transaction.query(
+        'local_messages',
+        where: 'server_message_id = ?',
+        whereArgs: [serverMessageId],
+        limit: 1,
+      );
+    });
+
+    if (rows.isEmpty) {
+      return null;
+    }
+
+    return ChatMessageModel.fromLocalRow(
+      Map<String, Object?>.from(rows.single),
+    );
+  }
+
+  Future<ChatMessageModel?> applyReceipt(ChatReceiptModel receipt) async {
+    final message = receipt.clientMessageId != null
+        ? await fetchMessageByClientId(receipt.clientMessageId!)
+        : receipt.messageId != null
+        ? await fetchMessageByServerId(receipt.messageId!)
+        : null;
+    if (message == null) {
+      return null;
+    }
+
+    final updated = message.copyWith(
+      deliveryStatus: _strongerDeliveryStatus(
+        message.deliveryStatus,
+        receipt.status,
+      ),
+      updatedAt: receipt.createdAt ?? DateTime.now().toUtc(),
+    );
+    await insertOutgoingMessage(updated);
+    return updated;
+  }
+
   Future<void> enqueueOutgoingMessage(
     ChatMessageModel message, {
     String? lastError,
@@ -149,8 +258,11 @@ where id = ?
     });
   }
 
-  Future<void> _updateLocalStatus(String clientMessageId, String localStatus) {
-    return _database.transaction((transaction) {
+  Future<void> _updateLocalStatus(
+    String clientMessageId,
+    String localStatus,
+  ) async {
+    await _database.transaction((transaction) {
       return transaction.update(
         'local_messages',
         {
@@ -161,7 +273,25 @@ where id = ?
         whereArgs: [clientMessageId],
       );
     });
+
+    final message = await fetchMessageByClientId(clientMessageId);
+    if (message != null) {
+      _notifyConversation(message.conversationId);
+    }
   }
+
+  void _notifyConversation(String conversationId) {
+    if (!_messageUpdates.isClosed) {
+      _messageUpdates.add(conversationId);
+    }
+  }
+}
+
+class ReceivedMessageResult {
+  const ReceivedMessageResult({required this.message, required this.isNew});
+
+  final ChatMessageModel message;
+  final bool isNew;
 }
 
 class OutgoingQueue {
@@ -249,4 +379,11 @@ DateTime? _dateTime(Object? value) {
     return value;
   }
   return DateTime.parse(value.toString());
+}
+
+String _strongerDeliveryStatus(String? current, String next) {
+  const priority = {'delivered': 1, 'read': 2};
+  final currentPriority = priority[current] ?? 0;
+  final nextPriority = priority[next] ?? 0;
+  return nextPriority >= currentPriority ? next : current ?? next;
 }

@@ -7,6 +7,8 @@ enum RealtimeEventType {
   messageRejected,
   receiptDelivered,
   receiptRead,
+  typingStarted,
+  typingStopped,
 }
 
 class RealtimeEvent {
@@ -76,6 +78,16 @@ class RealtimeEvent {
           ...payload,
           'status': payload['status'] ?? 'read',
         }),
+      ),
+      'typing.started' => RealtimeEvent(
+        type: RealtimeEventType.typingStarted,
+        name: name,
+        payload: payload,
+      ),
+      'typing.stopped' => RealtimeEvent(
+        type: RealtimeEventType.typingStopped,
+        name: name,
+        payload: payload,
       ),
       _ => throw FormatException('Unsupported realtime event: $name'),
     };

@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:timeotalk/core/realtime/realtime_event.dart';
 import 'package:timeotalk/core/database/app_database.dart';
 import 'package:timeotalk/features/chat/models/chat_message_model.dart';
+import 'package:timeotalk/features/chat/models/chat_receipt_model.dart';
 import 'package:timeotalk/features/chat/repositories/chat_local_repository.dart';
 import 'package:timeotalk/features/chat/repositories/chat_realtime_repository.dart';
 import 'package:timeotalk/features/chat/viewmodels/chat_view_model.dart';
@@ -82,7 +85,44 @@ void main() {
 
 class _DisconnectedRealtimeRepository implements ChatRealtimeRepository {
   @override
+  Stream<RealtimeEvent> subscribeToConversation(String conversationId) {
+    return const Stream.empty();
+  }
+
+  @override
   Future<void> publishMessageCreated(ChatMessageModel message) {
+    throw StateError('Ably is not connected.');
+  }
+
+  @override
+  Future<void> publishReceiptDelivered({
+    required String conversationId,
+    required ChatReceiptModel receipt,
+  }) {
+    throw StateError('Ably is not connected.');
+  }
+
+  @override
+  Future<void> publishReceiptRead({
+    required String conversationId,
+    required ChatReceiptModel receipt,
+  }) {
+    throw StateError('Ably is not connected.');
+  }
+
+  @override
+  Future<void> publishTypingStarted({
+    required String conversationId,
+    required String userId,
+  }) {
+    throw StateError('Ably is not connected.');
+  }
+
+  @override
+  Future<void> publishTypingStopped({
+    required String conversationId,
+    required String userId,
+  }) {
     throw StateError('Ably is not connected.');
   }
 }
@@ -91,7 +131,36 @@ class _RecordingRealtimeRepository implements ChatRealtimeRepository {
   final published = <ChatMessageModel>[];
 
   @override
+  Stream<RealtimeEvent> subscribeToConversation(String conversationId) {
+    return const Stream.empty();
+  }
+
+  @override
   Future<void> publishMessageCreated(ChatMessageModel message) async {
     published.add(message);
   }
+
+  @override
+  Future<void> publishReceiptDelivered({
+    required String conversationId,
+    required ChatReceiptModel receipt,
+  }) async {}
+
+  @override
+  Future<void> publishReceiptRead({
+    required String conversationId,
+    required ChatReceiptModel receipt,
+  }) async {}
+
+  @override
+  Future<void> publishTypingStarted({
+    required String conversationId,
+    required String userId,
+  }) async {}
+
+  @override
+  Future<void> publishTypingStopped({
+    required String conversationId,
+    required String userId,
+  }) async {}
 }

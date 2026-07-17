@@ -87,4 +87,20 @@ void main() {
     expect(event.receipt?.messageId, 'server_1');
     expect(event.receipt?.status, 'read');
   });
+
+  test('RealtimeEvent parses typing events from nested Ably data', () {
+    final started = RealtimeEvent.fromJson(const {
+      'name': 'typing.started',
+      'data': {'conversation_id': 'conversation_1', 'user_id': 'user_2'},
+    });
+    final stopped = RealtimeEvent.fromJson(const {
+      'name': 'typing.stopped',
+      'data': {'conversation_id': 'conversation_1', 'user_id': 'user_2'},
+    });
+
+    expect(started.type, RealtimeEventType.typingStarted);
+    expect(started.payload['user_id'], 'user_2');
+    expect(stopped.type, RealtimeEventType.typingStopped);
+    expect(stopped.payload['conversation_id'], 'conversation_1');
+  });
 }
